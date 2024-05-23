@@ -46,6 +46,7 @@ export default function TodoList( { items, onItemChange, onItemDelete }: TodoLis
                     /> */}
                     <Checkbox
                         onCheckedChange={(checked: boolean) => onItemCheckedChange(item, checked)}
+                        defaultChecked={item.checked}
                     />
                     <EditableText
                         className='flex flex-grow'

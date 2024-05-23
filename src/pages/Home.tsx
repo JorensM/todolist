@@ -19,11 +19,14 @@ export default function HomePage() {
     const todoItemsStore = useTodoItemsStore();
     const foldersStore = useFoldersStore();
 
-    const filteredTodoItems = todoItemsStore.todoItems.filter(item => item.folder == foldersStore.selected);
+    console.log(todoItemsStore.items);
+
+    const filteredTodoItems = todoItemsStore.items.filter(item => item.folder == foldersStore.selected);
 
     //-- Handlers --//
     const handleTodoFormSubmit = (itemName: string) => {
-        todoItemsStore.addTodoItem(
+        if(!foldersStore.selected) throw new Error('No folder selected');
+        todoItemsStore.add(
             {
                 name: itemName,
                 checked: false,
@@ -33,11 +36,12 @@ export default function HomePage() {
     }
 
     const handleItemChange = (item: TodoItem) => {
-        todoItemsStore.updateTodoItem(item);
+        console.log('item changed:', item);
+        todoItemsStore.update(item);
     }
 
     const handleItemDelete = (item: TodoItem) => {
-        todoItemsStore.deleteTodoItem(item);
+        todoItemsStore.moveToTrash(item);
     }
     
     const handleFolderSelect = (folder: Folder) => {
@@ -57,15 +61,17 @@ export default function HomePage() {
     return (
         <div className='flex flex-col h-full p-2'>
             <div className='overflow-x-auto py-1'>
-                <FoldersList
-                    folders={foldersStore.items}
-                    selectedFolder={foldersStore.selected}
-                    onFolderEdit={handleFolderEdit}
-                    onFolderSelect={handleFolderSelect}
-                    onFolderCreate={handleFolderCreate}
-                />
+                {foldersStore.initialized &&            
+                    <FoldersList
+                        folders={foldersStore.items}
+                        selectedFolder={foldersStore.selected!}
+                        onFolderEdit={handleFolderEdit}
+                        onFolderSelect={handleFolderSelect}
+                        onFolderCreate={handleFolderCreate}
+                    />
+                }
             </div>
-            <h1>{foldersStore.getSelected().name}</h1>
+            <h1>{foldersStore.getSelected()?.name || 'Loading'}</h1>
             <TodoList
                 items={filteredTodoItems}
                 onItemChange={handleItemChange}

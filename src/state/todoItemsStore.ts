@@ -1,82 +1,36 @@
 import { TodoItem, TodoItemUpdate, TodoItemCreate } from '#/types/TodoItem'
-import { ID } from '#/types/misc';
+import { ID, ItemUpdate } from '#/types/misc';
+import { getItemByID, getItemID } from '#/util/lists';
 import { create } from 'zustand'
+import createAbstractDataStoreSlice, { AbstractDataStoreSlice } from './abstractDataStore';
+import db from '#/classes/usedDB';
 
-let maxID = 0;
-
-type TodoItemsStore = {
-    todoItems: TodoItem[],
-    setTodoItem: (item: TodoItem) => void,
-    addTodoItem: (item: TodoItemCreate) => void,
-    updateTodoItem: (item: TodoItemUpdate) => void,
-    deleteTodoItem: (item: TodoItemUpdate) => void
+type TodoItemsStore = AbstractDataStoreSlice<TodoItem> & {
+    moveToTrash: (item: ItemUpdate<TodoItem> | ID) => void
 }
 
-const getItemByID = <T extends { id: ID }>(allItems: T[], itemID: ID) => {
-    const index = allItems.findIndex(item => item.id == itemID);
-    const item = allItems[index];
-
-    return { item, index }
-}
-
-const getItemID = (item: ID | { id: ID }) => {
-    if(typeof item == 'object') {
-        return item.id
-    } else {
-        return item;
-    }
-}
-
-const useTodoItemsStore = create<TodoItemsStore>((set) => ({
-    todoItems: [],
-    addTodoItem: (item: TodoItemCreate) => set((state) => ({
-        todoItems: [
-            ...state.todoItems,
-            {
-                ...item,
-                id: maxID++
-            }
-        ]
-    })),
-    setTodoItem: (item: TodoItem) => set((state) => {
-        const newTodoItems = [...state.todoItems];
-        const itemIndex = newTodoItems.findIndex(_item => _item.id == item.id);
-        newTodoItems[itemIndex] = item;
-        return {
-            todoItems: newTodoItems
-        }
-    }),
-    updateTodoItem: (item: TodoItemUpdate) => set((state) => {
-        //const itemIndex = state.todoItems.findIndex(_item => _item.id == item.id);
-        //const oldItem = state.todoItems[itemIndex];
-
-        const { item: oldItem, index: itemIndex } = getItemByID(state.todoItems, item.id);
-        if(!oldItem) {
-            throw new Error('Could not find item with ID' + item.id);
-        }
-        const newTodoItems = [...state.todoItems];
-        newTodoItems[itemIndex] = {
-            ...oldItem,
-            ...item
-        }
-        return {
-            todoItems: newTodoItems
-        };
-    }),
-    deleteTodoItem: (item: TodoItemUpdate | ID) => set((state) => {
+const useTodoItemsStore = create<TodoItemsStore>((set, get) => ({
+    ...createAbstractDataStoreSlice<TodoItem>(
+        [],
+        db.items,
+        undefined,
+        ...[set, get]
+    ),
+    moveToTrash: async (item) => {
+        const allItems = get().items;
         const id = getItemID(item);
-        const { item: newItem, index: itemIndex } = getItemByID(state.todoItems, id);
-        const newTodoItems = [...state.todoItems];
+        const { item: newItem, index } = getItemByID(allItems, id);
+
         if(newItem.folder == 0) {
-            newTodoItems.splice(itemIndex, 1);
+            get().delete(newItem);
         } else {
-            newItem.folder = 0;
-            newTodoItems[itemIndex] = newItem;
+            get().update({
+                ...newItem,
+                folder: 0
+            })
         }
-        return {
-            todoItems: newTodoItems
-        }
-    })
+
+    }
 }))
 
 export default useTodoItemsStore;

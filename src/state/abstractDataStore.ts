@@ -1,32 +1,25 @@
-import { ID } from '#/types/misc';
-import { StateCreator, create } from 'zustand';
+// Types
+import { AbstractCollection } from '#/classes/DB';
+import { ID, ItemCreate, ItemUpdate } from '#/types/misc';
+import { getItemByID, getItemID } from '#/util/lists';
 
-const getItemByID = <T extends { id: ID }>(allItems: T[], itemID: ID) => {
-    const index = allItems.findIndex(item => item.id == itemID);
-    const item = allItems[index];
 
-    return { item, index }
-}
-
-const getItemID = (item: ID | { id: ID }) => {
-    if(typeof item == 'object') {
-        return item.id
-    } else {
-        return item;
-    }
-}
-
-let maxID = 10;
-
-type ItemUpdate<T> = Partial<T> & { id: ID };
-type ItemCreate<T> = Omit<T, 'id'>;
 
 export type AbstractDataStoreSlice<T extends { id: ID }> = {
     items: T[],
-    add: (item: ItemCreate<T>) => void
-    set: (item: T) => void
-    update: (item: ItemUpdate<T>) => void
-    delete: (item: ItemUpdate<T> | ID) => void
+    add: (item: ItemCreate<T>) => Promise<void>
+    set: (item: T) => Promise<void>
+    update: (item: ItemUpdate<T>) => Promise<void>
+    delete: (item: ItemUpdate<T> | ID) => Promise<void>
+    /**
+     * Initialize the store by fetching data from database
+     * @returns 
+     */
+    init: () => void
+    /**
+     * Whether the store has been initialized
+     */
+    initialized: boolean
 }
 
 type StateSetter<State> = (setter: (state: State) => Partial<State>) => void
@@ -34,6 +27,8 @@ type StateSetter<State> = (setter: (state: State) => Partial<State>) => void
 export default function createAbstractDataStoreSlice<T extends { id: ID}>
 (
     initial: T[],
+    dbCollection: AbstractCollection<T>,
+    onInit: ((items: T[]) => void) | undefined,
     _set: StateSetter<AbstractDataStoreSlice<T>>,
     ...a: any[]
 ): 
@@ -41,51 +36,86 @@ AbstractDataStoreSlice<T>
 {   
     return ({
         items: initial,
-        add: (item: ItemCreate<T>) => _set((state) => {
+        initialized: false,
+        add: async (item: ItemCreate<T>) => {
+            const id = await dbCollection.add(item);
             const newItem = {
                 ...item,
-                id: maxID++
+                id
             } as T;
-            return {
+            _set((state) => ({
                 items: [
                     ...state.items,
                     newItem
                 ]
-            }
-        }),
-        set: (item: T) => _set((state) => {
-            const newItems = [...state.items];
-            const itemIndex = newItems.findIndex(_item => _item.id == item.id);
-            newItems[itemIndex] = item;
-            return {
-                items: newItems
-            }
-        }),
-        update: (item: ItemUpdate<T>) => _set((state) => {
+            }))
+        },
+        set: async (item: T) => {
+            await dbCollection.set(item);
+            _set((state) => {
+                const newItems = [...state.items];
+                const itemIndex = newItems.findIndex(_item => _item.id == item.id);
+                newItems[itemIndex] = item;
+                return {
+                    items: newItems
+                }
+            });
+        },
+        update: async (item: ItemUpdate<T>) => {
+            await dbCollection.update(item);
+            
+            _set((state) => {
             //const itemIndex = state.todoItems.findIndex(_item => _item.id == item.id);
             //const oldItem = state.todoItems[itemIndex];
+                const { item: oldItem, index: itemIndex } = getItemByID(state.items, item.id);
+                if(!oldItem) {
+                    throw new Error('Could not find item with ID' + item.id);
+                }
+                const newItems = [...state.items];
+                newItems[itemIndex] = {
+                    ...oldItem,
+                    ...item
+                }
+                return {
+                    items: newItems
+                };
+            })   
+        },
+        delete: async (item: ItemUpdate<T> | ID) => {
+            await dbCollection.delete(item);
+            
+            _set((state) => {
+                const id = getItemID(item);
+                const { index: itemIndex } = getItemByID(state.items, id);
+                const newItems = [...state.items];
+                newItems.splice(itemIndex, 1);
+                return {
+                    items: newItems
+                }
+            });
+        },
+        init: async () => {
 
-            const { item: oldItem, index: itemIndex } = getItemByID(state.items, item.id);
-            if(!oldItem) {
-                throw new Error('Could not find item with ID' + item.id);
+            const items = await dbCollection.getAll();
+            
+            
+            _set(() => {
+                return {
+                    items
+                }
+            });
+
+            if(onInit) {
+                await onInit(items);
             }
-            const newItems = [...state.items];
-            newItems[itemIndex] = {
-                ...oldItem,
-                ...item
-            }
-            return {
-                items: newItems
-            };
-        }),
-        delete: (item: ItemUpdate<T> | ID) => _set((state) => {
-            const id = getItemID(item);
-            const { index: itemIndex } = getItemByID(state.items, id);
-            const newItems = [...state.items];
-            newItems.splice(itemIndex, 1);
-            return {
-                items: newItems
-            }
-        })
+
+            console.log('initialized');
+            console.log('items: ', items);
+            _set(() => {
+                return {
+                    initialized: true
+                }
+            });
+        }
     });
 }

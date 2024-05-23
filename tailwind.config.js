@@ -9,6 +9,8 @@ export default {
       colors: {
         primary: '#10b981',
         destructive: '#f87171',
+        popover: '#FAF9F6',
+        'popover-foreground': '#141414',
         'primary-foreground': '#141414',
         ring: '#34d399'
       }

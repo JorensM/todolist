@@ -12,6 +12,8 @@ import useTodoItemsStore from '#/state/todoItemsStore';
 // Types
 import { TodoItem } from '#/types/TodoItem';
 import { Folder, FolderUpdate } from '#/types/Folder';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '#/components/input/DropdownMenu';
+import { EllipsisVertical } from 'lucide-react';
 
 export default function HomePage() {
 
@@ -58,6 +60,13 @@ export default function HomePage() {
         })
     }
 
+    const handleFolderDelete = (folder: Folder) => {
+        foldersStore.delete(folder);
+        //if(foldersStore.selected == folder.id) {
+        foldersStore.select(foldersStore.items[0].id);
+        //}
+    }
+
     return (
         <div className='flex flex-col h-full p-2'>
             <div className='overflow-x-auto py-1'>
@@ -71,7 +80,26 @@ export default function HomePage() {
                     />
                 }
             </div>
-            <h1>{foldersStore.getSelected()?.name || 'Loading'}</h1>
+            <div className='flex w-full justify-between'>
+                <h1 className='w-fit'>{foldersStore.getSelected()?.name || 'Loading'}</h1>
+                <DropdownMenu>
+                    <DropdownMenuTrigger>
+                        <EllipsisVertical
+                            className='h-6 w-6'
+                        />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent 
+                        align='end'
+                        className='testaaa'
+                    >
+                        <DropdownMenuItem
+                            onSelect={handleFolderDelete}
+                        >
+                            Delete Folder
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
             <TodoList
                 items={filteredTodoItems}
                 onItemChange={handleItemChange}

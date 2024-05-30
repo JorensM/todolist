@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { ChangeEvent, KeyboardEvent, ReactElement, ReactNode, useEffect, useRef, useState } from 'react'
+import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { Input } from './Input';
 
 type EditableTextProps = {

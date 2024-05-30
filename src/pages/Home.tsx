@@ -93,7 +93,7 @@ export default function HomePage() {
                         className='testaaa'
                     >
                         <DropdownMenuItem
-                            onSelect={handleFolderDelete}
+                            onSelect={() => handleFolderDelete(foldersStore.getSelected())}
                         >
                             Delete Folder
                         </DropdownMenuItem>

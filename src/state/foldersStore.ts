@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 
 // Types
-import { Folder, FolderCreate } from '#/types/Folder';
+import { Folder } from '#/types/Folder';
 import { ID } from '#/types/misc';
 import { AbstractDataStoreSlice } from './abstractDataStore';
 
@@ -48,10 +48,10 @@ const useFoldersStore = create<FoldersStore>((...a) => ({
             a[0](() => ({selected: items[0].id}));
 
         },
-        ...a
+        a[0]
     ),
     selected: null,
-    select: (id: ID) => a[0]((state) => ({
+    select: (id: ID) => a[0](() => ({
         selected: id
     })),
     getSelected: () => a[1]().items.find(item => item.id == a[1]().selected) as Folder

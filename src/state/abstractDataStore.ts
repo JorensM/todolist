@@ -29,8 +29,7 @@ export default function createAbstractDataStoreSlice<T extends { id: ID}>
     initial: T[],
     dbCollection: AbstractCollection<T>,
     onInit: ((items: T[]) => void) | undefined,
-    _set: StateSetter<AbstractDataStoreSlice<T>>,
-    ...a: any[]
+    _set: StateSetter<AbstractDataStoreSlice<T>>
 ): 
 AbstractDataStoreSlice<T>
 {   

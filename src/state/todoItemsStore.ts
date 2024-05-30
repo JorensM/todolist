@@ -1,4 +1,4 @@
-import { TodoItem, TodoItemUpdate, TodoItemCreate } from '#/types/TodoItem'
+import { TodoItem } from '#/types/TodoItem'
 import { ID, ItemUpdate } from '#/types/misc';
 import { getItemByID, getItemID } from '#/util/lists';
 import { create } from 'zustand'
@@ -14,12 +14,12 @@ const useTodoItemsStore = create<TodoItemsStore>((set, get) => ({
         [],
         db.items,
         undefined,
-        ...[set, get]
+        set
     ),
     moveToTrash: async (item) => {
         const allItems = get().items;
         const id = getItemID(item);
-        const { item: newItem, index } = getItemByID(allItems, id);
+        const { item: newItem } = getItemByID(allItems, id);
 
         if(newItem.folder == 0) {
             get().delete(newItem);
